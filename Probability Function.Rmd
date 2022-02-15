@@ -1,0 +1,137 @@
+---
+title: "Homework 3"
+author: "Jenny Eberling"
+date: "2/17/2022"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(poppr)
+data("Aeut")
+strata(Aeut) <- data.frame(other(Aeut)$population_hierarchy)
+Aeut <- as.genclone(Aeut)
+```
+
+## Part 1
+
+```{r}
+table(strata(Aeut,~Pop))
+table(strata(Aeut,~Pop/Subpop, combine = FALSE))
+```
+
+```{r}
+Aeutamova <- poppr.amova(Aeut, ~Pop/Subpop)
+Aeutamova
+```
+
+Posed questions:  
+What percentage of the variation is attributed to between pop and between samples within pop?  
+Between pop: 70%
+Between samples within pop: 8.41%
+
+Do these seem high enough to suggest the presence of substructure?  
+To me, they do seem high enough since between populations is 70% and is much higher than the within variance of 8.4%.  
+
+Comparing to values in the paper:  
+Race between: 3.3–4.7
+Race within: ~92.9–94.3%
+
+The between population is about double (4 vs 8 %) and the within population is a little lower (90 vs 70 %) in ours versus in the paper's, suggesting there is slightly more substructure here than in humans.
+
+
+## Part 2 
+
+Writing a function for P(X|Z,P)  
+
+```{r }
+# Mouse data
+X <- c(2,2,2,2,2,2,0,0,0,0,0,0)
+Z <- c(1,1,1,1,1,1,2,2,2,2,2,2)
+P <- matrix(c(0,1,1,0), nrow = 2, byrow = TRUE)
+
+# Building a function
+
+bayes <- function(x,z,p){
+  # a place to collect the probabilities I will create
+  output=c()
+  
+  for (i in 1:length(x)) { 
+  
+    #identify which population x is in
+    population = z[i]
+    #what are the allele frequencies for that population
+    allele_freq = p[population,]
+    
+    #given the frequencies, find the probability of each 2 parent outcome
+    P0 = allele_freq[1]^2
+    P1 = allele_freq[1]*allele_freq[2]
+    P2 = allele_freq[2]^2
+    probability = matrix(c(P0,P1,P2), nrow=1)
+    
+    #pull the probability for the actual value of x
+    location = x[i]+1     # this allows me to pull the correct probability out of the matrix
+    output[i] = probability[,location]
+  }
+  # I want to function to return the product of probabilities of the actual values
+  product = prod(output)
+  return(product) 
+}
+
+bayes(X,Z,P)
+
+```
+
+Run it on a set of inputs such that k=1 and $p_{ij}$ = .5
+
+```{r }
+X <- c(2,2,2,2,2,2,0,0,0,0,0,0)
+Z <- c(1,1,1,1,1,1,1,1,1,1,1,1)
+P <- matrix(c(.5,.5,.5,.5), nrow = 2, byrow = TRUE)
+
+
+bayes(X,Z,P)
+
+```
+
+Run it on a set of inputs such that k=2 and A allele frequency is .9 for population 1 and .1 for population 2
+
+```{r}
+X <- c(2,2,2,2,2,2,0,0,0,0,0,0)
+Z <- c(1,1,1,1,1,1,2,2,2,2,2,2)
+P <- matrix(c(.1,.9,.9,.1), nrow = 2, byrow = TRUE)
+
+bayes(X,Z,P)
+```
+
+Run it on at least one set of inputs that gives a probability of 0 (and explain why)  
+Having just 1 A allele can never happen because AA and aa never breed. Group 1 can never have 0 A's because it's only AA's breeding, and group 2 can never have 2 A's because it's only aa's breeding.
+
+```{r}
+X <- c(1,1,1,0,0,0,1,1,1,2,2,2)
+Z <- c(1,1,1,1,1,1,2,2,2,2,2,2)
+P <- matrix(c(0,1,1,0), nrow = 2, byrow = TRUE)
+
+
+bayes(X,Z,P)
+```
+
+Run it on at least one other set of inputs that gives a non-zero probability and comment on its magnitude
+
+Here there are 4 groups. The groups increase in their probability of allele 1. For each of the 4 groups, there are 3 observations (X), 1 for each allele combination. The likelihood of getting one of each combination for every one of the 4 groups is low since getting 2 A's isn't very likely for the first 3 groups and is only .5 for the last one. 
+
+```{r}
+X <- c(0,1,2,0,1,2,0,1,2,0,1,2)
+Z <- c(1,1,1,2,2,2,3,3,3,4,4,4)
+P <- matrix(c(.1,.9,.2,.8,.25,.75,.5,.5), nrow = 4, byrow = TRUE)
+
+
+bayes(X,Z,P)
+```
+
+
+Describe your findings in terms of how this probability can be used to determine population substructure.  
+
+
+
+
+
